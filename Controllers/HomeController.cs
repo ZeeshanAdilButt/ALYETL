@@ -1,7 +1,7 @@
-﻿using ALYETL.Models;
+﻿
 using ALYETL.ProdModels;
 using ALYETL.StgModels;
-using AspNetCore;
+using ALYETLV2.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -272,6 +272,7 @@ namespace ALYETL.Controllers
 
                                 .FirstOrDefault(x => x.Id == oldHospitalId);
 
+            var newOrganization = _prodContext.Organizations.First(x => x.Id == newOrgId);
 
             //AddHospital
             ALYETL.ProdModels.Hospital newHospital = new ProdModels.Hospital
@@ -417,8 +418,26 @@ namespace ALYETL.Controllers
 
                 //add doctor
                 var newDoctorUser = ConvertUser(oldHospitalDoctor.Doctor);
+                newDoctorUser.DoctorSalutations = new List<ProdModels.DoctorSalutation> {
+                     new ProdModels.DoctorSalutation 
+                     {
+                        SalutationId = 1,
+                        IsActive = true,
+                        CreatedOn = DateTime.UtcNow,
+                        CreatedBy = 1
+                     }
+                };
+
                 var doctorRole = GetProdDoctorRole();
                 newDoctorUser.UserRoles.Add(new AspNetUserRole { Role = doctorRole, User = newDoctorUser });
+
+                newOrganization.OrganizationDoctors.Add(new ProdModels.OrganizationDoctor
+                {
+
+                    Doctor = newDoctorUser,
+                    CreatedBy = 1,
+                    CreatedOn = DateTime.UtcNow
+                });
 
 
                 newHospitalDoctor.Doctor = newDoctorUser;
@@ -527,7 +546,7 @@ namespace ALYETL.Controllers
 
                         StatusId = oldConsultFormStatusLog.StatusId,
                         CreatedOn = oldConsultFormStatusLog.CreatedOn,
-                        CreatedBy = ConvertStageUserIdToProdUserID(oldConsultFormStatusLog.CreatedBy.Value)
+                        CreatedBy = ConvertStageUserIdToProdUserID(oldConsultFormStatusLog.CreatedBy)
                     };
 
                     newConsult.ConsultFormStatusLogs.Add(newConsultFormStatusLog);
@@ -539,10 +558,10 @@ namespace ALYETL.Controllers
                     var newConsultFormTimeline = new ProdModels.ConsultFormTimeline
                     {
 
-                        ActionUserId = ConvertStageUserIdToProdUserID(oldConsultFormTimeline.ActionUserId.Value),
+                        ActionUserId = ConvertStageUserIdToProdUserID(oldConsultFormTimeline.ActionUserId),
                         TimelineActionType = oldConsultFormTimeline.TimelineActionType,
                         CreatedOn = oldConsultFormTimeline.CreatedOn,
-                        CreatedBy = ConvertStageUserIdToProdUserID(oldConsultFormTimeline.CreatedBy.Value),
+                        CreatedBy = ConvertStageUserIdToProdUserID(oldConsultFormTimeline.CreatedBy),
                         ModifiedOn = oldConsultFormTimeline.ModifiedOn,
                         ModifiedBy = oldConsultFormTimeline.ModifiedBy,
                         IsActive = oldConsultFormTimeline.IsActive,
@@ -564,7 +583,7 @@ namespace ALYETL.Controllers
                         Message = oldConsultChat.Message,
                         FileName = oldConsultChat.FileName,
                         CreatedOn = oldConsultChat.CreatedOn,
-                        CreatedBy = oldConsultChat.CreatedBy,
+                        CreatedBy = ConvertStageUserIdToProdUserID(oldConsultChat.CreatedBy).Value,
                         FilePath = oldConsultChat.FilePath,
                         IsRead = oldConsultChat.IsRead,
                         PhotoThumbnailPath = oldConsultChat.PhotoThumbnailPath,
@@ -588,9 +607,12 @@ namespace ALYETL.Controllers
 
 
                 newHospitalProgram.ConsultForms.Add(newConsult);
+
+
             }
 
-
+            _prodContext.Update(newHospitalProgram);
+            _prodContext.SaveChanges();
             return View();
 
         }

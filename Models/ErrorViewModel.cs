@@ -1,4 +1,4 @@
-namespace ALYETL.Models
+namespace ALYETLV2.Models
 {
     public class ErrorViewModel
     {
